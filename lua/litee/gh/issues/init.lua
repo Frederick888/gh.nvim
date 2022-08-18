@@ -91,13 +91,11 @@ function M.open_issue(args)
     end)
 end
 
-function M.search_issues()
+function M.search_issues(repo_scope)
     vim.ui.input(
         {prompt = 'Enter a query string or leave blank for all issues: '},
-        function(input) 
-            local repo = ghcli.get_repo_name_owner()
-            lib_notify.notify_popup_with_timeout("Searching for issues, this may take a bit...", 7500, "info")
-            ghcli.search_issues(repo["owner"]["login"], repo["name"], input, function(err, issues) 
+        function(input)
+            local h = function(err, issues)
                 if err then
                     lib_notify.notify_popup_with_timeout("Failed to list issues: " .. err, 7500, "error")
                     return
@@ -120,9 +118,15 @@ function M.search_issues()
                         M.open_issue_by_number(issues[idx]["number"])
                     end
                 )
-            end)
-        end
-    )
+            end
+            local repo = ghcli.get_repo_name_owner()
+            lib_notify.notify_popup_with_timeout("Searching for issues, this may take a bit...", 7500, "info")
+            if repo_scope then
+                ghcli.search_repo_issues(repo["owner"]["login"], repo["name"], input, h)
+            else
+                ghcli.search_issues(input, h)
+            end
+        end)
 end
 
 
